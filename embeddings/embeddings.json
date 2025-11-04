@@ -1,0 +1,28 @@
+{
+    "embeddings" : [
+        {
+            "entityType":"Product",
+            "attribute":"embedding",
+            "index":"hnsw(metric: \"euclidean\")",
+            "provider":"huggingface",
+            "model":"sentence-transformers/all-MiniLM-L6-v2",
+            "config" : {
+                "dqlQuery" : "{ title:Product.title }",
+                "template": "{{title}} "
+            },
+            "disabled": false
+        },
+        {
+            "entityType":"Service",
+            "attribute":"embedding",
+            "index":"hnsw(metric: \"euclidean\")",
+            "provider":"huggingface",
+            "model":"sentence-transformers/all-MiniLM-L6-v2",
+            "config" : {
+                "dqlQuery" : "{ title:Service.title }",
+                "template": "{{title}} "
+            },
+            "disabled": false
+        }
+    ]
+}
