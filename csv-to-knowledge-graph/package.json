@@ -1,7 +1,7 @@
 {
   "name": "@hypermode/csvkit-monorepo",
   "version": "0.0.0",
-  "packageManager": "pnpm@10.6.0",
+  "packageManager": "pnpm@10.20.0",
   "scripts": {
     "dev:frontend": "pnpm --filter \"@hypermode/csvkit-frontend\" dev",
     "dev:backend": "cd ./modus && modus dev",
