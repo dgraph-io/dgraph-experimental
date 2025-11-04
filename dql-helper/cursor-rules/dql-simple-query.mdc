@@ -1,0 +1,176 @@
+---
+description: Use to generate DQL queries to get entities based on criteria
+globs: 
+alwaysApply: false
+---
+# Rule Name: dql-simple-query
+# Description: Generate DQL queries to retrieve entities and their relationships based on various criteria and patterns.
+
+# DQL Query Patterns
+
+DQL queries retrieve entities and related entities information in a graph database.
+
+Follow [dql-language.mdc](mdc:.cursor/rules/dql-language.mdc) to generate valid DQL.
+
+Respond with the parameterized query, include meaningful parameters and identifier values. Include comments in the query to explain the steps.
+
+Don't prompt the user for anything else. Just produce the query.
+
+---
+
+## 1. Basic Node Retrieval by Unique Identifier
+
+**Pattern**: Find a single node by a unique identifier and fetch attributes and relationships.
+
+**Instructions**:
+- Use `eq()` function on a unique identifier predicate or `uid()` function using UID.
+- List the node attributes to return
+- List the relationships (first degree) and the attributes of the related nodes to return
+- Continue to degree 2+ relationships if needed
+
+**Generic Template**:
+```dql
+query getEntity($identifier: string = "VALUE") {
+  # Find entity by unique identifier
+  getEntity(func: eq(ENTITY.UNIQUE_ATTRIBUTE, $identifier)) {
+    uid
+    ENTITY.ATTRIBUTE1
+    ENTITY.ATTRIBUTE2
+    # First degree relationships
+    ENTITY.RELATION1 {
+      RELATED_ENTITY.ATTRIBUTE1
+      RELATED_ENTITY.ATTRIBUTE2
+      # Second degree relationships (optional)
+      RELATED_ENTITY.RELATION2 {
+        NESTED_ENTITY.ATTRIBUTE1
+      }
+    }
+  }
+}
+```
+
+**Replace**:
+- `ENTITY` with the entity type (e.g., `User`, `Product`, `City`)
+- `UNIQUE_ATTRIBUTE` with the unique identifier field (e.g., `name`, `email`, `id`)
+- `ATTRIBUTE1`, `ATTRIBUTE2` with actual attributes to retrieve
+- `RELATION1`, `RELATION2` with relationship predicates
+- `VALUE` with the default or example value
+
+---
+
+## 2. Multiple Nodes Retrieval with Basic Filtering
+
+**Pattern**: Find multiple nodes matching certain criteria and fetch their attributes and relationships.
+
+**Instructions**:
+- Use functions that can return multiple nodes (`anyofterms`, `allofterms`, `has`, etc.)
+- Use `@filter` to narrow down criteria if needed
+- Include relevant attributes and relationships
+
+**Generic Template**:
+```dql
+query getEntities($searchTerm: string = "SEARCH_VALUE") {
+  # Find entities matching search criteria
+  getEntities(func: SEARCH_FUNCTION(ENTITY.SEARCH_ATTRIBUTE, $searchTerm)) {
+    uid
+    ENTITY.ATTRIBUTE1
+    ENTITY.ATTRIBUTE2
+    # Include relationships
+    ENTITY.RELATION1 {
+      RELATED_ENTITY.ATTRIBUTE1
+    }
+  }
+}
+```
+
+---
+
+## 3. Advanced Filtering with Conditions
+
+**Pattern**: Apply complex conditions to filter results at different levels of the query.
+
+**Instructions**:
+- Use `@filter` with logical operators (`AND`, `OR`, `NOT`)
+- Apply filters at node level or relationship level
+- Use comparison functions (`gt`, `lt`, `ge`, `le`, `eq`, `ne`)
+- Combine multiple filter conditions
+
+**Generic Template**:
+```dql
+query getFilteredEntities($param1: string = "VALUE1", $param2: int = 10) {
+  # Find entities with complex filtering
+  getFilteredEntities(func: INITIAL_FUNCTION(ENTITY.ATTRIBUTE, $param1)) 
+    @filter(CONDITION1 AND CONDITION2) {
+    uid
+    ENTITY.ATTRIBUTE1
+    ENTITY.ATTRIBUTE2
+    # Filtered relationships
+    ENTITY.RELATION1 @filter(RELATION_CONDITION) {
+      RELATED_ENTITY.ATTRIBUTE1
+    }
+  }
+}
+```
+
+**Common Filter Conditions**:
+- `eq(ATTRIBUTE, value)` - equals
+- `gt(ATTRIBUTE, value)` - greater than
+- `lt(ATTRIBUTE, value)` - less than
+- `anyofterms(ATTRIBUTE, "term1 term2")` - contains any terms
+- `NOT eq(ATTRIBUTE, value)` - not equals
+- `uid_in(RELATION, uid_variable)` - relationship exists with specific UIDs
+
+---
+
+
+
+## Common Root Functions
+
+- `eq(predicate, value)` - Exact match, best for unique identifiers
+- `anyofterms(predicate, "terms")` - Full-text search, matches any term
+- `allofterms(predicate, "terms")` - Full-text search, matches all terms
+- `has(predicate)` - Entities that have the predicate
+- `uid(variable)` - Entities with specific UIDs from variables
+- `type(TypeName)` - Entities of specific type (if using type system)
+
+```dql
+query getCity($name: string) {
+  getCity(func: eq(City.name, $name)) {
+    uid
+    City.name
+    City.state {
+      State.name
+    }
+  }
+}
+```
+
+Fetch related entities by including the relationship with a nested block.
+Example to query Project, its School, and the School's City and State:
+
+```dql
+{
+  projectWithLocation(func: eq(Project.title, "Science Fair")) {
+    Project.title
+    Project.school {
+      School.name
+      School.city {
+        City.name
+        City.state {
+          State.name
+        }
+      }
+    }
+  }
+}
+```
+
+
+
+
+
+
+
+
+
+
