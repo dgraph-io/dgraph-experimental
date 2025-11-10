@@ -1,0 +1,60 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: hatest-dgraph-alpha-pv-0
+  labels:
+    alpha-pod-index: "0"
+    release: hatest
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  claimRef:
+    namespace: default
+    name: datadir-hatest-dgraph-alpha-0
+  hostPath:
+    path: /dgraph-data/alpha-0
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: hatest-dgraph-alpha-pv-1
+  labels:
+    alpha-pod-index: "1"
+    release: hatest
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  claimRef:
+    namespace: default
+    name: datadir-hatest-dgraph-alpha-1
+  hostPath:
+    path: /dgraph-data/alpha-1
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: hatest-dgraph-alpha-pv-2
+  labels:
+    alpha-pod-index: "2"
+    release: hatest
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  claimRef:
+    namespace: default
+    name: datadir-hatest-dgraph-alpha-2
+  hostPath:
+    path: /dgraph-data/alpha-2

@@ -1,0 +1,12 @@
+image: &image
+  registry: docker.io
+  repository: dgraph/dgraph
+  tag: v25.0.0
+alpha:
+  replicaCount: 3
+  persistence:
+    enabled: true
+    storageClass: "local-storage"
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi

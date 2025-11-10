@@ -1,0 +1,42 @@
+# pvs.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: dgraph-alpha-pv-0
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  hostPath:
+    path: /Users/raphaelderbier/dgraph-data/alpha-0
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: dgraph-alpha-pv-1
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  hostPath:
+    path: /Users/raphaelderbier/dgraph-data/alpha-1
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: dgraph-alpha-pv-2
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  hostPath:
+    path: /Users/raphaelderbier/dgraph-data/alpha-2

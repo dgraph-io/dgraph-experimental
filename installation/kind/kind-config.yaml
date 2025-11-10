@@ -1,0 +1,15 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+- role: worker
+  extraMounts:
+    - hostPath: /Users/raphaelderbier/dgraph-data
+      containerPath: /dgraph
+- role: worker
+    - hostPath: /Users/raphaelderbier/dgraph-data
+      containerPath: /dgraph
+- role: worker
+    - hostPath: /Users/raphaelderbier/dgraph-data
+      containerPath: /dgraph
+
