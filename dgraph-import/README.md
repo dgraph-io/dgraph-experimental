@@ -2,7 +2,19 @@
 
 ## Overview
 
-The `dgraph import` command bulk loads RDF/JSON data into a Dgraph cluster via snapshot-based import. It supports two workflows: generating a snapshot from data files or streaming an existing snapshot to a running cluster.
+The `dgraph import` command, introduced in **v25.0.0** is designed to unify and simplify bulk and live data loading into Dgraph. Previously, users had to choose between `dgraph bulk` and `dgraph live`. With `dgraph import`, you now have a single command for both workflows, eliminating manual steps and reducing operational complexity.
+
+> **Note:**  
+> The original intent was to support both bulk and live loading, but **live loader mode is not yet supported**. Only bulk/snapshot import is available.
+
+## How Data Is Imported
+
+When you run `dgraph import`, the tool first runs the bulk loader using your provided RDF/JSON and schema files. This generates the snapshot data in the form of `p` directories (BadgerDB files) for each group.  
+After the bulk loader completes, `dgraph import` connects to the Alpha endpoint, puts the cluster into drain mode, and **streams the contents of the generated `p` directories directly to the running cluster using gRPC bidirectional streaming**. Once the import is complete, the cluster exits drain mode and resumes normal operation.
+
+If you already have a snapshot directory (from a previous bulk load), you can use the `--snapshot-dir` flag to skip the bulk loading phase and directly stream the snapshot data to the cluster.
+
+This means you no longer need to stop Alpha nodes or manually manage files—`dgraph import` handles everything automatically.
 
 ## Command Syntax
 
@@ -33,7 +45,7 @@ dgraph import --files data.rdf --schema schema.dql \
               --conn-str dgraph://localhost:9080
 ```
 
-Loads data from `data.rdf`, drops existing cluster data, generates a snapshot, and streams it to the cluster.
+Loads data from `data.rdf`, drops existing cluster data, runs the bulk loader to generate a snapshot, and streams it to the cluster.
 
 ### Import from Existing Snapshot
 
@@ -41,7 +53,7 @@ Loads data from `data.rdf`, drops existing cluster data, generates a snapshot, a
 dgraph import --snapshot-dir ./out --conn-str dgraph://localhost:9080
 ```
 
-Directly streams snapshot data without the bulk loading phase.
+Directly streams snapshot data (output of a previous bulk load) into the cluster, without running the bulk loader again.
 
 ## Snapshot Directory Structure
 
@@ -64,7 +76,7 @@ When using `--snapshot-dir`, provide the `out` directory path. The import tool a
 ## How It Works
 
 1. **Drop-All Mode**: With `--drop-all` and `--drop-all-confirm`, the bulk loader generates a snapshot from provided data and schema files.
-2. **Snapshot Streaming**: The snapshot is streamed to the cluster via gRPC.
+2. **Snapshot Streaming**: The snapshot (contents of `p` directories) is streamed to the cluster via gRPC, copying all data directly into the running cluster.
 3. **Consistency**: The cluster enters drain mode during import. On error, all data is dropped for safety.
 
 ## Import Examples
