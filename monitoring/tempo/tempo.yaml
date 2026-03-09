@@ -1,0 +1,65 @@
+##
+## Grafana Tempo Configuration (v2.6.x)
+##
+## Receives traces from the OpenTelemetry Collector via OTLP.
+## Stores traces locally and exposes them to Grafana for visualization.
+##
+
+server:
+  http_listen_port: 3200
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+ingester:
+  max_block_duration: 5m
+
+compactor:
+  compaction:
+    block_retention: 72h    # Keep traces for 3 days
+
+metrics_generator:
+  registry:
+    external_labels:
+      source: tempo
+      cluster: dgraph-local
+  storage:
+    path: /var/tempo/generator/wal
+    remote_write:
+      - url: http://prometheus:9090/api/v1/write
+        send_exemplars: true
+  traces_storage:
+    path: /var/tempo/generator/traces
+  processor:
+    service_graphs:
+      dimensions:
+        - service.namespace
+    span_metrics:
+      dimensions:
+        - service.namespace
+    local_blocks:
+      max_live_traces: 100000
+      flush_to_storage: true
+
+storage:
+  trace:
+    backend: local
+    block:
+      version: vParquet3
+    wal:
+      path: /var/tempo/wal
+    local:
+      path: /var/tempo/blocks
+
+overrides:
+  defaults:
+    ingestion:
+      max_traces_per_user: 100000
+    metrics_generator:
+      processors: [service-graphs, span-metrics, local-blocks]

@@ -1,0 +1,68 @@
+##
+## Local Dgraph Cluster Overlay
+##
+## Adds Dgraph Zero and Alpha to the monitoring stack.
+##
+## Usage:
+##   docker compose -f docker-compose.yml -f docker-compose.dgraph.yml up -d
+##
+
+services:
+  zero:
+    image: ${DGRAPH_IMAGE:-dgraph/dgraph:local}
+    container_name: dgraph-zero
+    restart: unless-stopped
+    depends_on:
+      - otel-collector
+    command: >
+      dgraph zero
+        --my=zero:5080
+        --telemetry "reports=false;"
+        --trace "jaeger=otel-collector:4318; ratio=1.0; service=zero;"
+    ports:
+      - "5080:5080"
+      - "6080:6080"
+    volumes:
+      - dgraph-zero-data:/dgraph
+    labels:
+      - "logging=dgraph"
+      - "service=dgraph-zero"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "dgraph-zero"
+
+  alpha:
+    image: ${DGRAPH_IMAGE:-dgraph/dgraph:local}
+    container_name: dgraph-alpha
+    restart: unless-stopped
+    depends_on:
+      - zero
+      - otel-collector
+    command: >
+      dgraph alpha
+        --my=alpha:7080
+        --zero=zero:5080
+        --security "whitelist=0.0.0.0/0;"
+        --telemetry "reports=false;"
+        --trace "jaeger=otel-collector:4318; ratio=1.0; service=alpha;"
+    ports:
+      - "8080:8080"
+      - "9080:9080"
+    volumes:
+      - dgraph-alpha-data:/dgraph
+    labels:
+      - "logging=dgraph"
+      - "service=dgraph-alpha"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "dgraph-alpha"
+
+volumes:
+  dgraph-zero-data:
+  dgraph-alpha-data:

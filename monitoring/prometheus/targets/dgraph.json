@@ -1,0 +1,46 @@
+[
+  {
+    "targets": [
+      "alpha1:8180"
+    ],
+    "labels": {
+      "job": "dgraph-alpha",
+      "cluster": "test-cluster",
+      "component": "alpha",
+      "instance": "alpha1"
+    }
+  },
+  {
+    "targets": [
+      "alpha2:8182"
+    ],
+    "labels": {
+      "job": "dgraph-alpha",
+      "cluster": "test-cluster",
+      "component": "alpha",
+      "instance": "alpha2"
+    }
+  },
+  {
+    "targets": [
+      "alpha3:8183"
+    ],
+    "labels": {
+      "job": "dgraph-alpha",
+      "cluster": "test-cluster",
+      "component": "alpha",
+      "instance": "alpha3"
+    }
+  },
+  {
+    "targets": [
+      "zero1:6180"
+    ],
+    "labels": {
+      "job": "dgraph-zero",
+      "cluster": "test-cluster",
+      "component": "zero",
+      "instance": "zero1"
+    }
+  }
+]

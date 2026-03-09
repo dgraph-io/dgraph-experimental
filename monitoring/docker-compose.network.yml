@@ -1,0 +1,35 @@
+##
+## External Dgraph Network Overlay
+##
+## Connects the monitoring stack to an existing Dgraph cluster's
+## Docker network so services can communicate across compose projects.
+##
+## Usage:
+##   # Find your Dgraph network name:
+##   docker network ls | grep compose
+##
+##   # Start monitoring attached to that network:
+##   DGRAPH_NETWORK=compose_default \
+##     docker compose -f docker-compose.yml -f docker-compose.network.yml up -d
+##
+
+services:
+  otel-collector:
+    networks:
+      - default
+      - dgraph
+
+  prometheus:
+    networks:
+      - default
+      - dgraph
+
+  promtail:
+    networks:
+      - default
+      - dgraph
+
+networks:
+  dgraph:
+    external: true
+    name: ${DGRAPH_NETWORK:?Set DGRAPH_NETWORK to your Dgraph compose network name}

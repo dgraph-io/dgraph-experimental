@@ -1,0 +1,148 @@
+##
+## Grafana LGTM Observability Stack for Dgraph
+##
+## Components:
+##   - Prometheus (metrics collection)
+##   - Grafana Tempo (distributed tracing)
+##   - Grafana Loki (log aggregation)
+##   - OpenTelemetry Collector (trace pipeline)
+##   - Promtail (log collection via Docker API)
+##   - Grafana (visualization & dashboards)
+##
+## Usage:
+##
+##   Monitoring stack only (external Dgraph cluster):
+##     1. Edit prometheus/targets/dgraph.json with your Alpha/Zero addresses
+##     2. Configure your Dgraph cluster with: --trace "jaeger=<collector-host>:4318; ..."
+##     3. docker compose up -d
+##
+##   With a local Dgraph cluster:
+##     docker compose -f docker-compose.yml -f docker-compose.dgraph.yml up -d
+##
+##   Open Grafana at http://localhost:3000 (admin/admin)
+##
+
+services:
+  # ──────────────────────────────────────────────
+  # OpenTelemetry Collector
+  # Receives OTLP traces from Dgraph and forwards
+  # them to Tempo.
+  # ──────────────────────────────────────────────
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
+    # Uncomment ports below if you need host access for debugging.
+    # In Mode 2, the collector is reachable via the Docker network.
+    # ports:
+    #   - "4317:4317"   # OTLP gRPC
+    #   - "4318:4318"   # OTLP HTTP
+    #   - "8888:8888"   # Collector metrics
+    depends_on:
+      - tempo
+
+  # ──────────────────────────────────────────────
+  # Prometheus — Metrics
+  # Scrapes /metrics from Dgraph Alpha and Zero.
+  # ──────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-lifecycle"
+      - "--web.enable-remote-write-receiver"
+      - "--enable-feature=exemplar-storage"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/targets:/etc/prometheus/targets:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+
+  # ──────────────────────────────────────────────
+  # Grafana Tempo — Distributed Tracing
+  # Receives OTLP traces via the OTel Collector.
+  # ──────────────────────────────────────────────
+  tempo:
+    image: grafana/tempo:2.6.1
+    container_name: tempo
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "3200:3200"   # Tempo HTTP API
+      - "4320:4317"   # OTLP gRPC (mapped to avoid conflict with collector)
+
+  # ──────────────────────────────────────────────
+  # Promtail — Log Collection
+  # Collects Docker container logs via Docker API
+  # and ships them to Loki.
+  # ──────────────────────────────────────────────
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    restart: unless-stopped
+    command: ["-config.file=/etc/promtail/promtail.yaml"]
+    volumes:
+      - ./promtail/promtail.yaml:/etc/promtail/promtail.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - promtail-data:/promtail
+    depends_on:
+      - loki
+
+  # ──────────────────────────────────────────────
+  # Grafana Loki — Log Aggregation
+  # Receives logs from Promtail.
+  # ──────────────────────────────────────────────
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    volumes:
+      - ./loki/loki.yaml:/etc/loki/loki.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+
+  # ──────────────────────────────────────────────
+  # Grafana — Visualization & Dashboards
+  # Pre-provisioned with Prometheus, Tempo, and
+  # Loki datasources + a Dgraph dashboard.
+  # ──────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor tempoSearch tempoServiceGraph traceToMetrics
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
+
+volumes:
+  prometheus-data:
+  tempo-data:
+  loki-data:
+  grafana-data:
+  promtail-data:
