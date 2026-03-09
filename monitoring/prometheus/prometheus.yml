@@ -1,0 +1,37 @@
+##
+## Prometheus Configuration for Dgraph Monitoring
+##
+## Scrapes metrics from Dgraph Alpha and Zero nodes.
+## Dgraph exposes Prometheus metrics at /metrics (and /debug/prometheus_metrics).
+##
+## Key metric namespaces:
+##   dgraph_*   — Dgraph application metrics (queries, mutations, latency, Raft, etc.)
+##   badger_*   — Badger storage engine metrics (reads, writes, LSM, vlog, compaction)
+##   go_*       — Go runtime metrics (goroutines, memory, GC)
+##   process_*  — OS process metrics (CPU, memory, file descriptors)
+##
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+scrape_configs:
+  # Dgraph targets — edit targets/dgraph.json to point at your cluster
+  - job_name: dgraph
+    metrics_path: /metrics
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets/dgraph.json
+        refresh_interval: 30s
+
+  # OpenTelemetry Collector self-metrics
+  - job_name: otel-collector
+    metrics_path: /metrics
+    static_configs:
+      - targets: [otel-collector:8888]
+
+  # Prometheus self-monitoring
+  - job_name: prometheus
+    static_configs:
+      - targets: [localhost:9090]

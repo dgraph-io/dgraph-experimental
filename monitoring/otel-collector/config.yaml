@@ -1,0 +1,73 @@
+##
+## OpenTelemetry Collector Configuration
+##
+## This collector serves as the unified telemetry pipeline:
+##   1. Receives OTLP traces from Dgraph Alpha and Zero (port 4318 HTTP / 4317 gRPC)
+##   2. Forwards traces → Tempo
+##
+
+receivers:
+  # OTLP receiver for traces from Dgraph
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+
+processors:
+  # Add resource attributes to all telemetry
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: "docker-compose"
+        action: upsert
+
+  # Batch telemetry before exporting
+  batch:
+    send_batch_size: 1024
+    timeout: 5s
+
+  # Add resource detection
+  resourcedetection:
+    detectors: [env, system]
+    timeout: 5s
+    override: false
+
+exporters:
+  # Export traces to Tempo via OTLP gRPC
+  otlp/tempo:
+    endpoint: "tempo:4317"
+    tls:
+      insecure: true
+
+  # Debug exporter for troubleshooting (logs to collector stdout)
+  debug:
+    verbosity: basic
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+extensions:
+  health_check:
+    endpoint: "0.0.0.0:13133"
+
+service:
+  extensions: [health_check]
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888
+
+  pipelines:
+    # Traces pipeline: Dgraph → OTel Collector → Tempo
+    traces:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [otlp/tempo, debug]
+
