@@ -1,0 +1,96 @@
+# A fly.toml for running a single Dgraph zero and alpha
+# -------------------------------------------------------------
+
+# App name, this will be the name of your Dgraph single node cluster on fly.io.
+# The dns name of the cluster will be <app>.fly.dev, e.g., foo.fly.dev
+# You must change this.
+app = "<you must set this>"
+
+[build]
+  image = "dgraph/standalone:latest"
+
+[env]
+  PORT = "8080"
+  # Dgraph Env Settings
+  # ----------------
+  # Set the security token for the alpha for admin access.
+  # Note that whitelisting alone will not work because Dgraph does not respect the
+  # X-Forwarded-For header, which is set by fly.io.
+  # You should change the value of token= to something random and secure. That token
+  # will need to supplied in the X-Dgraph-AuthToken header for any requests to the
+  # /alter endpoint of the service.
+  DGRAPH_ALPHA_SECURITY = "token=supersecret;whitelist=0.0.0.0/0"
+  # Other commmon env settings that you may want to alter
+  # ----------------
+  # Enable the MCP endpoint for model context protocol (version v24+)
+  #DGRAPH_ALPHA_MCP = "true"
+  # Limit flags for alpha (see the docs for available values)
+  #DGRAPH_ALPHA_LIMIT = ""
+
+[[mounts]]
+  source = "dgraph_data"
+  destination = "/dgraph"
+  # Set the initial size to your needs. Simple graphs can get away with lower sizes.
+  # The auto_extend_size_threshold is the percentage of the volume that must be used
+  # before the volume will be auto extended. The auto_extend_size_increment is the
+  # amount of space to add when the volume is auto extended. The auto_extend_size_limit
+  # is the maximum size of the volume. Comment out the auto_extend* flags to disable
+  # auto extension.
+  initial_size = "10GB"
+  auto_extend_size_threshold = 80
+  auto_extend_size_increment = "2GB"
+  auto_extend_size_limit = "20GB"
+
+# This overrides the run.sh script that is included in the Dgraph standalone image so 
+# that env variables are respsected.
+[processes]
+  app = "/bin/bash -c 'dgraph zero & dgraph alpha'"
+
+# Public HTTP service on 8080 via TLS. This endpoint serves DQL query and GraphQL requests.
+[http_service]
+  processes = ["app"]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+
+  [[http_service.checks]]
+    interval = "10s"
+    timeout = "5s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/health"
+
+# Raw TCP service for HTTP on 8080. This is for direct IP access.
+[[services]]
+  processes = ["app"]
+  internal_port = 8080
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 8080
+    handlers = ["http"]
+
+  [[services.tcp_checks]]
+    interval = "10s"
+    timeout = "5s"
+    grace_period = "20s"
+    restart_limit = 3
+
+# Public gRPC service on 9080 via TLS.
+[[services]]
+  processes = ["app"]
+  internal_port = 9080
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 9080
+    handlers = ["tls"]
+    [services.ports.tls_options]
+      alpn = ["h2"]
+      versions = ["TLSv1.2", "TLSv1.3"]
+
+  [[services.tcp_checks]]
+    interval = "10s"
+    timeout = "2s"
+    grace_period = "10s"
