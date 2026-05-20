@@ -1,0 +1,11 @@
+zero:
+  replicaCount: 1
+  shardReplicaCount: 3   # max Alpha per group (Zero --replicas)
+
+alpha:
+  replicaCount: 3        # 3 members in the single group
+  persistence:
+    size: 10Gi
+
+image:
+  tag: "latest"
